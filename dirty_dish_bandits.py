@@ -38,17 +38,27 @@ def person_is_detected():
 def identify_person():
 	# Returns an int corresponding with that person's index in weight_array
 
-def change_array(person_index, delta_weight):
-	# Updates weight_array based on how the sink changed
-
 def display_results(faces, weight_array):
 	# Updates the continuous display with the weight of each person
 	for i in names:
-		print "%s: %dg" % (name[i], weight_array[i])
+		print "%s: %dg\n" % (name[i], weight_array[i])
 
 def change_array(person_index, weight_array, delta_weight,):
-	# Recalculates weight_array
-	#weight_array(person_index) = weight_array(person_index) + delta_weight
-	#if weight_array(person_index) < 0:
-		# redistribute the extra weight amongst the others
-		# change the person's weight to 0
+	# Updates weight_array based on how the sink changed
+
+	# if person washes less than their weight, subtract it
+	if weight_array[person_index] + delta_weight > 0:
+		weight_array[person_index] = weight_array[person_index] + delta_weight
+
+	# if person washes more than their weight, redistribute weight to other members
+	else:
+		# find how much each person contributes to the sink, and redistribute based on ratio
+		sum_array = sum(weight_array) - weight_array[person_index]
+		for i in range(0, len(weight_array)-1):
+			if i == person_index:
+				weight_array[i] = 0
+			else:
+				weight_array[i] = weight_array[i] + float(weight_array[i])/sum_array * (weight_array[person_index] + delta_weight)
+	# return new weight_array
+	return weight_array
+
