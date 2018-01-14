@@ -6,6 +6,7 @@ import sys
 from hx711 import HX711
 import tkinter as tk
 import tkinter.font
+import cv2
 
 ### Helper functions
 
@@ -23,15 +24,14 @@ def measure_sink():
         sys.exit()
     return val
 
-
-def load_faces(num_people):
+#def load_faces(num_people):
 	# Returns an array of faces as templates for future face detection
 
-def person_is_detected():
+def person_is_detected(n):
 	# Returns a boolean indicating whether a person is detected or not
-
-def identify_person():
-	# Returns an int corresponding with that person's index in weight_array
+	if(n == 1 or n == 2 or n == 3 or n == 4):
+        return TRUE
+    else:
 
 def change_array(person_index, weight_array, delta_weight,):
 	# Updates weight_array based on how the sink changed
@@ -53,8 +53,43 @@ def change_array(person_index, weight_array, delta_weight,):
 
 def update_data(weight_array):
 	# Updates weight_array
-	if person_is_detected():
-		person_index = identify_person()											# Find the index of weight_array that belongs to person detected
+
+	# Read the camera
+	ret, im =cam.read()
+	gray = cv2.cvtColor(im,cv2.COLOR_BGR2GRAY)
+	faces = faceCascade.detectMultiScale(gray, 1.2,5)
+	for(x,y,w,h) in faces:
+
+        # Create rectangle around the face
+        cv2.rectangle(im, (x-20,y-20), (x+w+20,y+h+20), (0,255,0), 4)
+
+        # Recognize the face belongs to which ID
+        Id = recognizer.predict(gray[y:y+h,x:x+w])
+
+        # Check the ID if exist
+        if(Id[0] == 1):
+            Id = "Brooke"
+        elif(Id[0] == 2):
+            Id = "Eric"
+        elif(Id[0] == 3):
+            Id = "Francis"
+        elif(Id[0] == 4):
+            Id = "Nithin"
+        #If not exist, then it is Unknown
+        else:
+            Id = "Unknown"
+
+        # Put text describe who is in the picture
+        cv2.rectangle(im, (x-22,y-90), (x+w+22, y-22), (0,255,0), -1)
+        cv2.putText(im, str(Id), (x,y-40), font, 2, (255,255,255), 3)
+
+    # Display the video frame with the bounded rectangle
+    cv2.imshow('im',im) 
+    if cv2.waitKey(10) & 0xFF == ord('q'):
+        break
+
+	if person_is_detected(Id[0]):
+		person_index = Id[0] - 1											# Find the index of weight_array that belongs to person detected
 		weight_after = measure_sink()												# Takes measurement from load cell
 		delta_weight = weight_after - weight_before									# Calculate the change in weight
 		weight_array = change_array(person_index, weight_array, delta_weight)		# Update the weight array accordingly
@@ -77,7 +112,7 @@ def main():
 	weight_array = np.zeros(num_people)					# Store weights in an array
 	global weight_before
 	weight_before = measure_sink()						# Initial weight in sink
-	faces = load_faces(num_people)						# Stores template faces for each person
+	#faces = load_faces(num_people)						# Stores template faces for each person
 	names = ["Brooke", "Eric", "Francis", "Nithin"]		# Stores names of each person
 
 	# Initialize load cell
@@ -93,9 +128,23 @@ def main():
 	window.configure(background="black")
 	myFont = tkinter.font.Font(family='Helvetica', size = 25, weight = "bold")
 
+	# Initialize Face Recognition
+	recognizer = cv2.face.LBPHFaceRecognizer_create()
+	recognizer.read('trainer/trainer.yml')
+	cascadePath = "haarcascade_frontalface_default.xml"
+	faceCascade = cv2.CascadeClassifier(cascadePath);
+	font = cv2.FONT_HERSHEY_SIMPLEX
+	cam = cv2.VideoCapture(1)
+
 	# Iterate for t > 0
 	update_display()		# calls update_data as well
 	window.mainloop()
+
+	# Stop the camera
+	cam.release()
+
+	# Close all windows
+	cv2.destroyAllWindows()
 
 
 #######
